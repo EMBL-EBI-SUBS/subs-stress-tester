@@ -1,0 +1,17 @@
+apply plugin: 'java'
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'uk.ac.ebi.subs.StressTesterApplication'
+    }
+}
+
+dependencies {
+    compile("org.springframework.boot:spring-boot-starter")
+    compile("org.springframework:spring-web")
+    compile("com.fasterxml.jackson.core:jackson-databind")
+    compile("commons-io:commons-io:2.4")
+    compile project(':subs-data-model')
+    testCompile("junit:junit")
+
+}
