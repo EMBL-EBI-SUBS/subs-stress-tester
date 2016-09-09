@@ -9,6 +9,7 @@ jar {
 dependencies {
     compile("org.springframework.boot:spring-boot-starter")
     compile("org.springframework:spring-web")
+    compile("org.springframework.boot:spring-boot-starter-logging")
     compile("com.fasterxml.jackson.core:jackson-databind")
     compile("commons-io:commons-io:2.4")
     compile project(':subs-data-model')
