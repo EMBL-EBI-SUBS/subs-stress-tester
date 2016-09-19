@@ -11,8 +11,8 @@ import uk.ac.ebi.subs.stresstest.StressTestService;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 @SpringBootApplication
+
 public class StressTesterApplication implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(StressTesterApplication.class);
