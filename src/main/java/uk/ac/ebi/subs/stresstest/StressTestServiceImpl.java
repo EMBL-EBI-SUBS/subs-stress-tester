@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import uk.ac.ebi.subs.data.submittable.Submission;
+import uk.ac.ebi.subs.data.Submission;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
