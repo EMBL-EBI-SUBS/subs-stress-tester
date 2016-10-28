@@ -17,6 +17,7 @@ dependencies {
     compile("org.apache.any23:apache-any23-encoding:1.1")
     compile("commons-io:commons-io:2.4")
     compile project(':subs-data-model')
+    compile project(':subs-processing-model')
     testCompile("junit:junit")
     testCompile("org.springframework.boot:spring-boot-starter-test")
 }
