@@ -5,11 +5,13 @@ import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.subs.data.Submission;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -80,7 +82,11 @@ public class StressTestServiceImpl implements StressTestService {
                     submission.getDomain().getName(),
                     submission.allSubmissionItems().size()
             );
-            restTemplate.put(protocol + "://" + host + ":" + port + "/" + urlPath, submission);
+            String expectedResponseType = "";
+            String uri = protocol + "://" + host + ":" + port + "/" + urlPath;
+
+            String submissionId = restTemplate.postForObject(uri, submission, expectedResponseType.getClass());
+            logger.info("Submitted {}",submissionId);
             submissionCounter++;
         }
     };
