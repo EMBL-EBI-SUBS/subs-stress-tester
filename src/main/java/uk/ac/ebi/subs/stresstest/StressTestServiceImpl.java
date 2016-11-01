@@ -82,11 +82,10 @@ public class StressTestServiceImpl implements StressTestService {
                     submission.getDomain().getName(),
                     submission.allSubmissionItems().size()
             );
-            String expectedResponseType = "";
+
             String uri = protocol + "://" + host + ":" + port + "/" + urlPath;
 
-            String submissionId = restTemplate.postForObject(uri, submission, expectedResponseType.getClass());
-            logger.info("Submitted {}",submissionId);
+            Submission submissionReceived = restTemplate.postForObject(uri, submission, submission.getClass());
             submissionCounter++;
         }
     };
