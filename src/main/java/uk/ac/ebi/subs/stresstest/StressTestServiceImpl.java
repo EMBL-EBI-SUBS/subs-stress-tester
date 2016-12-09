@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import uk.ac.ebi.subs.data.FullSubmission;
+
 import uk.ac.ebi.subs.data.Submission;
 
 import java.io.IOException;
@@ -76,9 +76,9 @@ public class StressTestServiceImpl implements StressTestService {
     }
 
 
-    Consumer<FullSubmission> submitSubmission = new Consumer<FullSubmission>() {
+    Consumer<Submission> submitSubmission = new Consumer<Submission>() {
         @Override
-        public void accept(FullSubmission submission) {
+        public void accept(Submission submission) {
             logger.info("Submitting for domain {} with {} submittables ",
                     submission.getDomain().getName(),
                     submission.allSubmissionItems().size()
@@ -86,14 +86,13 @@ public class StressTestServiceImpl implements StressTestService {
 
             String uri = protocol + "://" + host + ":" + port + "/" + urlPath;
 
-            //TODO this will not work until you provide a FullSubmission api
-            FullSubmission submissionReceived = restTemplate.postForObject(uri, submission, submission.getClass());
+            Submission submissionReceived = restTemplate.postForObject(uri, submission, submission.getClass());
             submissionCounter++;
         }
     };
 
-    Function<Path, FullSubmission> loadSubmission = new Function<Path, FullSubmission>() {
-        public FullSubmission apply(Path p) {
+    Function<Path, Submission> loadSubmission = new Function<Path, Submission>() {
+        public Submission apply(Path p) {
             logger.info("Loading Submission JSON from {}", p);
 
             try {
@@ -102,7 +101,7 @@ public class StressTestServiceImpl implements StressTestService {
 
                 logger.debug("got string: {}", json);
 
-                return mapper.readValue(json, FullSubmission.class);
+                return mapper.readValue(json, Submission.class);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
