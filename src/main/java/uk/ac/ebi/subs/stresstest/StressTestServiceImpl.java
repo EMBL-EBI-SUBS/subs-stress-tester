@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import uk.ac.ebi.subs.data.FullSubmission;
 import uk.ac.ebi.subs.data.Submission;
 
 import java.io.IOException;
@@ -76,9 +77,9 @@ public class StressTestServiceImpl implements StressTestService {
     }
 
 
-    Consumer<Submission> submitSubmission = new Consumer<Submission>() {
+    Consumer<FullSubmission> submitSubmission = new Consumer<FullSubmission>() {
         @Override
-        public void accept(Submission submission) {
+        public void accept(FullSubmission submission) {
             logger.info("Submitting for domain {} with {} submittables ",
                     submission.getDomain().getName(),
                     submission.allSubmissionItems().size()
@@ -91,8 +92,8 @@ public class StressTestServiceImpl implements StressTestService {
         }
     };
 
-    Function<Path, Submission> loadSubmission = new Function<Path, Submission>() {
-        public Submission apply(Path p) {
+    Function<Path, FullSubmission> loadSubmission = new Function<Path, FullSubmission>() {
+        public FullSubmission apply(Path p) {
             logger.info("Loading Submission JSON from {}", p);
 
             try {
@@ -101,7 +102,7 @@ public class StressTestServiceImpl implements StressTestService {
 
                 logger.debug("got string: {}", json);
 
-                return mapper.readValue(json, Submission.class);
+                return mapper.readValue(json, FullSubmission.class);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
