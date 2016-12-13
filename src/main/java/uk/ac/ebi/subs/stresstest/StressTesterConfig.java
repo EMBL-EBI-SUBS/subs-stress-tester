@@ -11,6 +11,10 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Collections;
 
 @Configuration
+/**
+ * Rest template must be configured to use connection pooling, else it will leave too many open connections
+ * and the server dies
+ */
 public class StressTesterConfig {
 
     private static final int TOTAL = 200;
