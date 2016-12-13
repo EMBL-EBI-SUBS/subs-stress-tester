@@ -143,9 +143,9 @@ public class StressTestServiceImpl implements StressTestService {
                         if (itemUri == null){
                             throw new NullPointerException("no submission URI for "+item);
                         }
-                        logger.info("posting to {}, {}",itemUri,item);
+                        logger.debug("posting to {}, {}",itemUri,item);
                         URI location = restTemplate.postForLocation(itemUri, item);
-                        logger.info("created {}",location.toASCIIString());
+                        logger.debug("created {}",location.toASCIIString());
                     }
             );
 
