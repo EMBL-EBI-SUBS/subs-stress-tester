@@ -20,4 +20,8 @@ dependencies {
     compile project(':subs-processing-model')
     testCompile("junit:junit")
     testCompile("org.springframework.boot:spring-boot-starter-test")
+
+
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.8' // unsatisfied dependency got logback has crept in
+
 }
