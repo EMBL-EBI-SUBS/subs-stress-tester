@@ -131,8 +131,9 @@ public class StressTestServiceImpl implements StressTestService {
             String submissionUri = domainTypeToSubmissionPath.get(minimalSubmission.getClass());
 
             URI submissionLocation = restTemplate.postForLocation(submissionUri, minimalSubmission);
+            String[] pathElements = submissionLocation.getPath().split("/");
 
-            final String submissionId = minimalSubmission.getId();
+            final String submissionId = pathElements[pathElements.length - 1]; //TODO this is a cheap hack, fix it
 
             fullSubmission.allSubmissionItemsStream().parallel().forEach(
                     item -> {
