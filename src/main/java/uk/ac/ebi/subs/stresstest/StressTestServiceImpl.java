@@ -1,6 +1,5 @@
 package uk.ac.ebi.subs.stresstest;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
@@ -23,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -55,6 +55,7 @@ public class StressTestServiceImpl implements StressTestService {
     @Override
     public void submitJsonInDir(Path path) {
         pathStream(path)
+                .parallel()
                 .map(loadSubmission)
                 .forEachOrdered(submitSubmission)
         ;
@@ -103,7 +104,9 @@ public class StressTestServiceImpl implements StressTestService {
                     })
                     .map(pathToPathTimeCode)
                     .sorted((p1, p2) -> Long.compare(p1.timecode, p2.timecode))
-                    .map(pathTimecodeToPath);
+                    .map(pathTimecodeToPath)
+                    .collect(Collectors.toList())
+                    .stream();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -124,14 +127,6 @@ public class StressTestServiceImpl implements StressTestService {
             Map<Class, String> domainTypeToSubmissionPath = itemSubmissionUri();
             Submission minimalSubmission = new Submission(fullSubmission);
 
-            String minimalSubmissionJson = null;
-            try {
-                minimalSubmissionJson = mapper.writeValueAsString(minimalSubmission);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-
-
             minimalSubmission.setSubmissionDate(null);
             String submissionUri = domainTypeToSubmissionPath.get(minimalSubmission.getClass());
 
@@ -139,19 +134,12 @@ public class StressTestServiceImpl implements StressTestService {
 
             final String submissionId = minimalSubmission.getId();
 
-            fullSubmission.allSubmissionItemsStream().forEach(
+            fullSubmission.allSubmissionItemsStream().parallel().forEach(
                     item -> {
                         item.setSubmissionId(submissionId);
                         item.setStatus("Draft");
 
                         String itemUri = domainTypeToSubmissionPath.get(item.getClass());
-
-                        String itemJson;
-                        try {
-                            itemJson = mapper.writeValueAsString(item);
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
 
                         if (itemUri == null) {
                             throw new NullPointerException("no submission URI for " + item);

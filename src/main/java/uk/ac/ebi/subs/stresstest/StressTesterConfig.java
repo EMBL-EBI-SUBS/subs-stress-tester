@@ -13,8 +13,8 @@ import java.util.Collections;
 @Configuration
 public class StressTesterConfig {
 
-    private static final int TOTAL = 100;
-    private static final int PER_ROUTE = 100;
+    private static final int TOTAL = 200;
+    private static final int PER_ROUTE = 200;
 
     @Bean
     public RestTemplate restTemplate() {
