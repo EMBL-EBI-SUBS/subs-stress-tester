@@ -152,6 +152,11 @@ public class StressTestServiceImpl implements StressTestService {
                     }
             );
 
+            minimalSubmission.setId(submissionId);
+            minimalSubmission.setStatus("Submitted");
+
+            //TODO complete the users part of submission by changing the status
+            //restTemplate.put(submissionUri,minimalSubmission);
 
             submissionCounter++;
 
