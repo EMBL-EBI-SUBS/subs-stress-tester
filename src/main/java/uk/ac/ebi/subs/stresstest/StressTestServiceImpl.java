@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.subs.data.FullSubmission;
 import uk.ac.ebi.subs.data.Submission;
+import uk.ac.ebi.subs.data.status.ProcessingStatus;
+import uk.ac.ebi.subs.data.status.SubmissionStatus;
 import uk.ac.ebi.subs.data.submittable.*;
 
 import java.io.IOException;
@@ -122,7 +124,7 @@ public class StressTestServiceImpl implements StressTestService {
                     fullSubmission.allSubmissionItems().size()
             );
 
-            fullSubmission.setStatus("Draft");
+            fullSubmission.setStatus(SubmissionStatus.Draft);
 
             Map<Class, String> domainTypeToSubmissionPath = itemSubmissionUri();
             Submission minimalSubmission = new Submission(fullSubmission);
@@ -138,7 +140,7 @@ public class StressTestServiceImpl implements StressTestService {
             fullSubmission.allSubmissionItemsStream().parallel().forEach(
                     item -> {
                         item.setSubmissionId(submissionId);
-                        item.setStatus("Draft");
+                        item.setStatus(ProcessingStatus.Draft.name());
 
                         String itemUri = domainTypeToSubmissionPath.get(item.getClass());
 
@@ -153,14 +155,11 @@ public class StressTestServiceImpl implements StressTestService {
             );
 
             minimalSubmission.setId(submissionId);
-            minimalSubmission.setStatus("Submitted");
+            minimalSubmission.setStatus(SubmissionStatus.Submitted);
 
-            //TODO complete the users part of submission by changing the status
             restTemplate.put(submissionLocation,minimalSubmission);
 
             submissionCounter++;
-
-
         }
     };
 
