@@ -6,7 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.util.Pair;
+import org.springframework.hateoas.Resource;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.subs.data.FullSubmission;
@@ -51,6 +54,9 @@ public class StressTestServiceImpl implements StressTestService {
     RestTemplate restTemplate;
 
     ObjectMapper mapper = new ObjectMapper();
+
+    ParameterizedTypeReference<Resource<Submission>> submissionResourceTypeRef =
+            new ParameterizedTypeReference<Resource<Submission>>() {};
 
     int submissionCounter = 0;
 
@@ -129,13 +135,26 @@ public class StressTestServiceImpl implements StressTestService {
             Map<Class, String> domainTypeToSubmissionPath = itemSubmissionUri();
             Submission minimalSubmission = new Submission(fullSubmission);
 
-            minimalSubmission.setSubmissionDate(null);
             String submissionUri = domainTypeToSubmissionPath.get(minimalSubmission.getClass());
 
             URI submissionLocation = restTemplate.postForLocation(submissionUri, minimalSubmission);
             String[] pathElements = submissionLocation.getPath().split("/");
 
-            final String submissionId = pathElements[pathElements.length - 1]; //TODO this is a cheap hack, fix it
+            ResponseEntity<Resource<Submission>> submissionResource = restTemplate.exchange(
+                    submissionLocation,
+                    HttpMethod.GET,
+                    HttpEntity.EMPTY,
+                    submissionResourceTypeRef
+            );
+
+            minimalSubmission = submissionResource.getBody().getContent();
+            if (minimalSubmission.getId() == null) {
+                //TODO not clear why ID is null, use a hideous hack for now
+                minimalSubmission.setId(pathElements[pathElements.length - 1]);
+
+            }
+            final String submissionId = minimalSubmission.getId();
+
 
             fullSubmission.allSubmissionItemsStream().parallel().forEach(
                     item -> {
@@ -154,10 +173,14 @@ public class StressTestServiceImpl implements StressTestService {
                     }
             );
 
-            minimalSubmission.setId(submissionId);
+
+
             minimalSubmission.setStatus(SubmissionStatus.Submitted);
 
-            restTemplate.put(submissionLocation,minimalSubmission);
+            restTemplate.put(
+                    submissionLocation,
+                    minimalSubmission
+            );
 
             submissionCounter++;
         }
