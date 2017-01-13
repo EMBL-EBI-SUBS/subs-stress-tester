@@ -167,8 +167,17 @@ public class StressTestServiceImpl implements StressTestService {
                             throw new NullPointerException("no submission URI for " + item);
                         }
                         logger.debug("posting to {}, {}", itemUri, item);
-                        URI location = restTemplate.postForLocation(itemUri, item);
-
+                        ResponseEntity<Resource> responseEntity = restTemplate.postForEntity(itemUri, item,Resource.class );
+                        if (responseEntity.getStatusCodeValue() != 201){
+                            logger.error("Unexpected status code {} when posting {} to {}; response body is",
+                                    responseEntity.getStatusCodeValue(),
+                                    item,
+                                    itemUri,
+                                    responseEntity.getBody().toString()
+                            );
+                            throw new RuntimeException("Server error "+responseEntity.toString());
+                        }
+                        URI location = responseEntity.getHeaders().getLocation();
                         logger.debug("created {}", location);
                     }
             );
