@@ -20,7 +20,7 @@ public class StressTesterApplication implements CommandLineRunner {
     @Autowired
     StressTestService stressTestService;
 
-    @Value("${searchDir:/Users/davidr/ArrayExpressSubs2}")
+    @Value("${searchDir:.}")
     String searchDir;
 
     @Override
