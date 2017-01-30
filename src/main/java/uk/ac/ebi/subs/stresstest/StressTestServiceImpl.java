@@ -137,9 +137,9 @@ public class StressTestServiceImpl implements StressTestService {
             Map<Class, String> domainTypeToSubmissionPath = itemSubmissionUri();
             Submission minimalSubmission = new Submission(submission);
 
-            String submissionUri = domainTypeToSubmissionPath.get(minimalSubmission.getClass());
+            String submissionsUri = domainTypeToSubmissionPath.get(minimalSubmission.getClass());
 
-            URI submissionLocation = restTemplate.postForLocation(submissionUri, minimalSubmission);
+            URI submissionLocation = restTemplate.postForLocation(submissionsUri, minimalSubmission);
             String[] pathElements = submissionLocation.getPath().split("/");
 
             ResponseEntity<Resource<Submission>> submissionResource = restTemplate.exchange(
@@ -152,7 +152,7 @@ public class StressTestServiceImpl implements StressTestService {
 
             submission.allSubmissionItemsStream().parallel().forEach(
                     item -> {
-                        ((PartOfSubmission) item).setSubmission(submissionUri);
+                        ((PartOfSubmission) item).setSubmission(submissionLocation.toASCIIString());
                         item.setStatus(ProcessingStatus.Draft.name());
 
                         String itemUri = domainTypeToSubmissionPath.get(item.getClass());
