@@ -2,6 +2,7 @@ package uk.ac.ebi.subs.stresstest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.http.client.methods.HttpRequestWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,10 +10,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.util.Pair;
 import org.springframework.hateoas.Resource;
+import org.springframework.hateoas.ResourceSupport;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.subs.data.Submission;
 import uk.ac.ebi.subs.data.client.*;
@@ -123,6 +128,8 @@ public class StressTestServiceImpl implements StressTestService {
     }
 
 
+
+
     Consumer<ClientCompleteSubmission> submitSubmission = new Consumer<ClientCompleteSubmission>() {
         @Override
         public void accept(ClientCompleteSubmission submission) {
@@ -178,12 +185,24 @@ public class StressTestServiceImpl implements StressTestService {
             );
 
 
-            minimalSubmission.setStatus(SubmissionStatus.Submitted);
-
-            restTemplate.put(
+            ResponseEntity<Resource<Submission>> subGetResponse = restTemplate.exchange(
                     submissionLocation,
-                    minimalSubmission
+                    HttpMethod.GET,
+                    HttpEntity.EMPTY,
+                    new ParameterizedTypeReference<Resource<Submission>>() {}
             );
+
+            Submission sub = subGetResponse.getBody().getContent();
+            sub.setStatus(SubmissionStatus.Submitted);
+            HttpEntity<Submission> putEntity = new HttpEntity<>(sub);
+
+            ResponseEntity<Resource<Submission>> subPutResponse = restTemplate.exchange(
+                    submissionLocation,
+                    HttpMethod.PUT,
+                    putEntity,
+                    new ParameterizedTypeReference<Resource<Submission>>() {}
+            );
+
 
             submissionCounter++;
         }
