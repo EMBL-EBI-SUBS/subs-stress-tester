@@ -192,13 +192,13 @@ public class StressTestServiceImpl implements StressTestService {
                     new ParameterizedTypeReference<Resource<Submission>>() {}
             );
 
-            Submission sub = subGetResponse.getBody().getContent();
-            sub.setStatus(SubmissionStatus.Submitted);
-            HttpEntity<Submission> putEntity = new HttpEntity<>(sub);
 
-            ResponseEntity<Resource<Submission>> subPutResponse = restTemplate.exchange(
+
+            HttpEntity<StatusUpdate> putEntity = new HttpEntity<>(new StatusUpdate("Submitted"));
+
+            ResponseEntity<Resource<Submission>> subPatchResponse = restTemplate.exchange(
                     submissionLocation,
-                    HttpMethod.PUT,
+                    HttpMethod.PATCH,
                     putEntity,
                     new ParameterizedTypeReference<Resource<Submission>>() {}
             );
@@ -207,6 +207,22 @@ public class StressTestServiceImpl implements StressTestService {
             submissionCounter++;
         }
     };
+
+    private class StatusUpdate {
+        private String status;
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public StatusUpdate(String status){
+            this.status = status;
+        }
+    }
 
     Function<Path, ClientCompleteSubmission> loadSubmission = new Function<Path, ClientCompleteSubmission>() {
         public ClientCompleteSubmission apply(Path p) {
