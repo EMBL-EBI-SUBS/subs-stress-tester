@@ -2,7 +2,6 @@ package uk.ac.ebi.subs.stresstest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.client.methods.HttpRequestWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,19 +9,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.util.Pair;
 import org.springframework.hateoas.Resource;
-import org.springframework.hateoas.ResourceSupport;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.subs.data.Submission;
 import uk.ac.ebi.subs.data.client.*;
-import uk.ac.ebi.subs.data.status.ProcessingStatus;
-import uk.ac.ebi.subs.data.status.SubmissionStatus;
+import uk.ac.ebi.subs.data.status.ProcessingStatusEnum;
+import uk.ac.ebi.subs.data.status.SubmissionStatusEnum;
 
 import java.io.IOException;
 import java.net.URI;
@@ -139,7 +134,7 @@ public class StressTestServiceImpl implements StressTestService {
                     submission.allSubmissionItems().size()
             );
 
-            submission.setStatus(SubmissionStatus.Draft);
+//TODO fix in SUBS-333            submission.setStatus(SubmissionStatusEnum.Draft);
 
             Map<Class, String> domainTypeToSubmissionPath = itemSubmissionUri();
             Submission minimalSubmission = new Submission(submission);
@@ -160,7 +155,7 @@ public class StressTestServiceImpl implements StressTestService {
             submission.allSubmissionItemsStream().parallel().forEach(
                     item -> {
                         ((PartOfSubmission) item).setSubmission(submissionLocation.toASCIIString());
-                        item.setStatus(ProcessingStatus.Draft.name());
+                        item.setStatus(ProcessingStatusEnum.Draft.name());
 
                         String itemUri = domainTypeToSubmissionPath.get(item.getClass());
 
