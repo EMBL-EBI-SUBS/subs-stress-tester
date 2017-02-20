@@ -155,7 +155,6 @@ public class StressTestServiceImpl implements StressTestService {
             submission.allSubmissionItemsStream().parallel().forEach(
                     item -> {
                         ((PartOfSubmission) item).setSubmission(submissionLocation.toASCIIString());
-                        item.setStatus(ProcessingStatusEnum.Draft.name());
 
                         String itemUri = domainTypeToSubmissionPath.get(item.getClass());
 
