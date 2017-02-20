@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.util.Pair;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -17,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.subs.data.Submission;
 import uk.ac.ebi.subs.data.client.*;
 import uk.ac.ebi.subs.data.status.ProcessingStatusEnum;
+import uk.ac.ebi.subs.data.status.SubmissionStatus;
 import uk.ac.ebi.subs.data.status.SubmissionStatusEnum;
 
 import java.io.IOException;
@@ -134,8 +136,6 @@ public class StressTestServiceImpl implements StressTestService {
                     submission.allSubmissionItems().size()
             );
 
-//TODO fix in SUBS-333            submission.setStatus(SubmissionStatusEnum.Draft);
-
             Map<Class, String> domainTypeToSubmissionPath = itemSubmissionUri();
             Submission minimalSubmission = new Submission(submission);
 
@@ -187,15 +187,26 @@ public class StressTestServiceImpl implements StressTestService {
                     new ParameterizedTypeReference<Resource<Submission>>() {}
             );
 
+            Link subsStatusRel = subGetResponse.getBody().getLink("submissionStatus");
+            String subsStatusHref = subsStatusRel.getHref();
+
+            ResponseEntity<Resource<SubmissionStatus>> subStatusGetResponse = restTemplate.exchange(
+                    subsStatusHref,
+                    HttpMethod.GET,
+                    HttpEntity.EMPTY,
+                    new ParameterizedTypeReference<Resource<SubmissionStatus>>() {}
+            );
+
+            String submissionStatusLocation = subStatusGetResponse.getBody().getLink("self").getHref();
 
 
             HttpEntity<StatusUpdate> putEntity = new HttpEntity<>(new StatusUpdate("Submitted"));
 
-            ResponseEntity<Resource<Submission>> subPatchResponse = restTemplate.exchange(
-                    submissionLocation,
+            ResponseEntity<Resource<SubmissionStatus>> subPatchResponse = restTemplate.exchange(
+                    submissionStatusLocation,
                     HttpMethod.PATCH,
                     putEntity,
-                    new ParameterizedTypeReference<Resource<Submission>>() {}
+                    new ParameterizedTypeReference<Resource<SubmissionStatus>>() {}
             );
 
 
