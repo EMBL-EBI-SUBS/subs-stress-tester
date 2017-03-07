@@ -17,9 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.subs.data.Submission;
 import uk.ac.ebi.subs.data.client.*;
-import uk.ac.ebi.subs.data.status.ProcessingStatusEnum;
 import uk.ac.ebi.subs.data.status.SubmissionStatus;
-import uk.ac.ebi.subs.data.status.SubmissionStatusEnum;
 
 import java.io.IOException;
 import java.net.URI;
@@ -94,9 +92,9 @@ public class StressTestServiceImpl implements StressTestService {
         ).forEach(
                 pair -> {
                     String urlPath = pair.getSecond();
-                    Class domainType = pair.getFirst();
+                    Class type = pair.getFirst();
 
-                    itemClassToSubmissionUri.put(domainType, protocol + "://" + host + ":" + port + "/" + basePath + urlPath);
+                    itemClassToSubmissionUri.put(type, protocol + "://" + host + ":" + port + "/" + basePath + urlPath);
                 }
         );
 
@@ -131,15 +129,15 @@ public class StressTestServiceImpl implements StressTestService {
         @Override
         public void accept(ClientCompleteSubmission submission) {
 
-            logger.info("Submitting for domain {} with {} submittables ",
-                    submission.getDomain().getName(),
+            logger.info("Submitting for team {} with {} submittables ",
+                    submission.getTeam().getName(),
                     submission.allSubmissionItems().size()
             );
 
-            Map<Class, String> domainTypeToSubmissionPath = itemSubmissionUri();
+            Map<Class, String> typeToSubmissionPath = itemSubmissionUri();
             Submission minimalSubmission = new Submission(submission);
 
-            String submissionsUri = domainTypeToSubmissionPath.get(minimalSubmission.getClass());
+            String submissionsUri = typeToSubmissionPath.get(minimalSubmission.getClass());
 
             URI submissionLocation = restTemplate.postForLocation(submissionsUri, minimalSubmission);
             String[] pathElements = submissionLocation.getPath().split("/");
@@ -156,7 +154,7 @@ public class StressTestServiceImpl implements StressTestService {
                     item -> {
                         ((PartOfSubmission) item).setSubmission(submissionLocation.toASCIIString());
 
-                        String itemUri = domainTypeToSubmissionPath.get(item.getClass());
+                        String itemUri = typeToSubmissionPath.get(item.getClass());
 
                         if (itemUri == null) {
                             throw new NullPointerException("no submission URI for " + item);
