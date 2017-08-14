@@ -1,4 +1,28 @@
+group 'uk.ac.ebi.subs'
+version '0.1.0-SNAPSHOT'
+
+
 apply plugin: 'java'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.5.1.RELEASE")
+        classpath 'org.hidetake:gradle-ssh-plugin:1.1.3'
+    }
+}
+
+repositories {
+        mavenLocal()
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+        mavenCentral()
+}
 
 jar {
     manifest {
@@ -17,16 +41,67 @@ dependencies {
     compile("org.apache.httpcomponents:httpclient:4.5")
 
     compile("uk.ac.ebi.subs:subs-data-model")
+    compile('uk.ac.ebi.subs:subs-processing-model:0.1.0-SNAPSHOT')
 
     compile("com.jayway.jsonpath:json-path")
     testCompile("com.jayway.jsonpath:json-path:2.0.0")
 
     compile fileTree(dir: 'libs', include: '*.jar')
 
-    compile project(':subs-processing-model')
 
     testCompile("junit:junit")
     testCompile("org.springframework.boot:spring-boot-starter-test")
+    testCompile('uk.ac.ebi.subs:subs-test-categories:0.1.0-SNAPSHOT')
+}
 
-    testCompile project(':subs-test-categories')
+
+task sourceJar(type: Jar) { from sourceSets.main.allJava }
+
+artifacts {
+    archives jar
+    archives sourceJar { classifier "sources" }
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+                if (project.hasProperty('ossrhUsername') && project.hasProperty('ossrhPassword')) {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                if (project.hasProperty('ossrhUsername') && project.hasProperty('ossrhPassword')) {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+            }
+
+            pom.project {
+                packaging 'jar'
+                url 'https://github.com/EMBL-EBI-SUBS/subs-stress-tester'
+
+                scm {
+                    url 'https://github.com/EMBL-EBI-SUBS/subs-stress-tester.git'
+                }
+
+                licenses {
+                    license {
+                        name 'The Apache License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'subs-internal'
+                        name 'EMBL-EBI-SUBS'
+                        email 'subs-internal@ebi.ac.uk'
+                    }
+                }
+            }
+        }
+    }
 }
