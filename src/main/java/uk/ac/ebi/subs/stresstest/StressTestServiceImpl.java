@@ -2,9 +2,11 @@ package uk.ac.ebi.subs.stresstest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.util.Pair;
@@ -12,9 +14,11 @@ import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.subs.data.Submission;
 import uk.ac.ebi.subs.data.client.*;
@@ -27,6 +31,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,23 +45,26 @@ import java.util.stream.Stream;
 public class StressTestServiceImpl implements StressTestService {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-
     private ApiLinkDiscovery apiLinkDiscovery = new ApiLinkDiscovery();
 
-    @Value("${host:.}")
+    @Value("${host:localhost}")
     String host;
-
     @Value("${port:8080}")
     Integer port;
-
-    @Value("${basePath:api/}")
+    @Value("${basePath:api}")
     String basePath;
-
     @Value("${protocol:http}")
     String protocol;
-
     @Value("${suffix:json}")
     String suffix;
+    @Value("${aap.url}")
+    String aapURL;
+    @Value("${aap.username}")
+    String aapUsername;
+    @Value("${aap.password}")
+    String appPassword;
+    @Value("${submitted:true}")
+    boolean submitted;
 
     @Autowired
     RestTemplate restTemplate;
@@ -70,6 +79,7 @@ public class StressTestServiceImpl implements StressTestService {
 
     @Override
     public void submitJsonInDir(Path path) {
+        //httpHeaders = createHeaders();
         pathStream(path)
                 .parallel()
                 .map(loadSubmission)
@@ -79,12 +89,11 @@ public class StressTestServiceImpl implements StressTestService {
         logger.info("Submission count: {}", submissionCounter);
     }
 
-    public Map<Class, String> itemSubmissionUri() {
+    public Map<Class, String> itemSubmissionUri(String submissionUri) {
         Map<Class, String> itemClassToSubmissionUri = new HashMap<>();
-        URI rootUri = URI.create(protocol + "://" + host + ":" + port + "/" + basePath);
+        URI rootUri = URI.create(submissionUri + "/contents/");
 
         Stream.of(
-                Pair.of(Submission.class, "submissions"),
                 Pair.of(Analysis.class, "analyses"),
                 Pair.of(Assay.class, "assays"),
                 Pair.of(AssayData.class, "assayData"),
@@ -101,7 +110,7 @@ public class StressTestServiceImpl implements StressTestService {
                     Class type = pair.getFirst();
                     String name = pair.getSecond() + ":create";
 
-                    Link link = apiLinkDiscovery.discoverNamedLink(rootUri, name);
+                    Link link = apiLinkDiscovery.discoverNamedLink(restTemplate,rootUri, name);
 
                     itemClassToSubmissionUri.put(type, link.getHref());
                 }
@@ -110,6 +119,13 @@ public class StressTestServiceImpl implements StressTestService {
         return itemClassToSubmissionUri;
     }
 
+    public String itemSubmissionCreateUri(String teamName) {
+        return discoverNamedLink(teamName,"submissions:create");
+    }
+
+    public String discoverNamedLink(String teamName, String linkName) {
+        return apiLinkDiscovery.discoverNamedLink(restTemplate, URI.create(protocol + "://" + host + ":" + port + "/" + basePath + "/teams/" + teamName + "/"), linkName).getHref();
+    }
 
     Stream<Path> pathStream(Path searchDir) {
         try {
@@ -117,20 +133,12 @@ public class StressTestServiceImpl implements StressTestService {
                     .filter(Files::isReadable)
                     .filter(Files::isRegularFile)
                     .filter(p -> FilenameUtils.getExtension(p.toString()).equals(this.suffix))
-                    .filter(p -> {
-                        String[] parts = p.toFile().getName().toString().split("\\.");
-                        return parts.length == 3 && parts[1].matches("^\\d+$");
-                    })
-                    .map(pathToPathTimeCode)
-                    .sorted((p1, p2) -> Long.compare(p1.timecode, p2.timecode))
-                    .map(pathTimecodeToPath)
                     .collect(Collectors.toList())
                     .stream();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-
 
     Consumer<ClientCompleteSubmission> submitSubmission = new Consumer<ClientCompleteSubmission>() {
         @Override
@@ -141,13 +149,15 @@ public class StressTestServiceImpl implements StressTestService {
                     submission.allSubmissionItems().size()
             );
 
-            Map<Class, String> typeToSubmissionPath = itemSubmissionUri();
+            long submissionCreateStartDateTime = System.currentTimeMillis();
+            final String submissionCreateUri = itemSubmissionCreateUri(submission.getTeam().getName());
             Submission minimalSubmission = new Submission(submission);
+            URI submissionLocation = restTemplate.postForLocation(submissionCreateUri, minimalSubmission);
+            long submissionCreateEndDateTime = System.currentTimeMillis();
+            final long between = submissionCreateEndDateTime - submissionCreateStartDateTime;
+            logger.info("Submitted minimalSubmission " + minimalSubmission.getId() + " in " + between + "ms");
 
-            String submissionsUri = typeToSubmissionPath.get(minimalSubmission.getClass());
-
-            URI submissionLocation = restTemplate.postForLocation(submissionsUri, minimalSubmission);
-
+            final Map<Class, String> typeToSubmissionPath = itemSubmissionUri(submissionLocation.toString());
 
             submission.allSubmissionItemsStream().parallel().forEach(
                     item -> {
@@ -160,8 +170,11 @@ public class StressTestServiceImpl implements StressTestService {
                         }
                         logger.debug("posting to {}, {}", itemUri, item);
                         try {
+                            long resourceCreateStartDateTime = System.currentTimeMillis();
                             ResponseEntity<Resource> responseEntity = restTemplate.postForEntity(itemUri, item, Resource.class);
-
+                            long resourceCreateEndDateTime = System.currentTimeMillis();
+                            final long resourceBetween = resourceCreateEndDateTime - resourceCreateStartDateTime;
+                            logger.info("Submitted minimalSubmission " + item.getAlias() + " in " + resourceBetween + "ms");
                             if (responseEntity.getStatusCodeValue() != 201) {
                                 logger.error("Unexpected status code {} when posting {} to {}; response body is",
                                         responseEntity.getStatusCodeValue(),
@@ -172,6 +185,7 @@ public class StressTestServiceImpl implements StressTestService {
                                 throw new RuntimeException("Server error " + responseEntity.toString());
                             }
                             URI location = responseEntity.getHeaders().getLocation();
+
                             logger.debug("created {}", location);
                         } catch (HttpClientErrorException e) {
                             logger.error("HTTP error when posting item");
@@ -184,58 +198,60 @@ public class StressTestServiceImpl implements StressTestService {
                     }
             );
 
-            Link submissionStatusLink = apiLinkDiscovery.discoverNamedLink(submissionLocation, "submissionStatus", "self");
-            String submissionStatusLocation = submissionStatusLink.getHref();
-
-            logger.info("Submission {} status {}", submissionLocation, submissionStatusLocation);
-
-            Link availableStatusesLink = null;
-            long startTime = System.nanoTime();
-            int attemptCounter = 0;
-
-            while (availableStatusesLink == null && timeElapsedInSeconds(startTime) < 30 && attemptCounter < 10) {
-                ++attemptCounter;
-                logger.info("Searching for availableStatuses for {}, attempt {}, {}", submissionLocation, attemptCounter, timeElapsedInSeconds(startTime));
-                try {
-                    availableStatusesLink = apiLinkDiscovery.discoverNamedLink(submissionLocation, "submissionStatus", "self", "availableStatuses");
-                } catch (IllegalStateException e) {
-                    logger.info("available status link is not present, may retry");
-                }
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (availableStatusesLink == null) {
-                logger.info("availableStatuses not found for {} after {} attempts", submissionLocation, attemptCounter);
-                return;
-            }
-
-
-            HttpEntity<StatusUpdate> patchStatusEntity = new HttpEntity<>(new StatusUpdate("Submitted"));
-
-            try {
-                restTemplate.exchange(
-                        submissionStatusLocation,
-                        HttpMethod.PATCH,
-                        patchStatusEntity,
-                        new ParameterizedTypeReference<Resource<SubmissionStatus>>() {
-                        }
-                );
-            } catch (HttpClientErrorException e) {
-                logger.error("HTTP error when patching submission status");
-                logger.error("Submission {} status {}", submissionLocation, submissionStatusLocation);
-                logger.error(e.getResponseBodyAsString());
-                logger.error(e.toString());
-                throw e;
-            }
-
+            if (submitted) updateSubmissionStatus(submissionLocation);
 
             submissionCounter++;
         }
     };
+
+    private void updateSubmissionStatus(URI submissionLocation) {
+        Link submissionStatusLink = apiLinkDiscovery.discoverNamedLink(restTemplate,submissionLocation,  "submissionStatus", "self");
+        String submissionStatusLocation = submissionStatusLink.getHref();
+
+        logger.info("Submission {} status {}", submissionLocation, submissionStatusLocation);
+
+        Link availableStatusesLink = null;
+        long startTime = System.nanoTime();
+        int attemptCounter = 0;
+
+        while (availableStatusesLink == null && timeElapsedInSeconds(startTime) < 30 && attemptCounter < 60) {
+            ++attemptCounter;
+            logger.info("Searching for availableStatuses for {}, attempt {}, {}", submissionLocation, attemptCounter, timeElapsedInSeconds(startTime));
+            try {
+                availableStatusesLink = apiLinkDiscovery.discoverNamedLink(restTemplate,submissionLocation, "submissionStatus", "self", "availableStatuses");
+            } catch (IllegalStateException e) {
+                logger.info("available status link is not present, may retry");
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (availableStatusesLink == null) {
+            logger.info("availableStatuses not found for {} after {} attempts", submissionLocation, attemptCounter);
+            return;
+        }
+
+        HttpEntity<StatusUpdate> patchStatusEntity = new HttpEntity<>(new StatusUpdate("Submitted"));
+
+        try {
+            restTemplate.exchange(
+                    submissionStatusLocation,
+                    HttpMethod.PATCH,
+                    patchStatusEntity,
+                    new ParameterizedTypeReference<Resource<SubmissionStatus>>() {
+                    }
+            );
+        } catch (HttpClientErrorException e) {
+            logger.error("HTTP error when patching submission status");
+            logger.error("Submission {} status {}", submissionLocation, submissionStatusLocation);
+            logger.error(e.getResponseBodyAsString());
+            logger.error(e.toString());
+            //throw e;
+        }
+    }
 
     private double timeElapsedInSeconds(long referencePointInNanoSeconds) {
         long diffInNanos = System.nanoTime() - referencePointInNanoSeconds;
@@ -286,48 +302,11 @@ public class StressTestServiceImpl implements StressTestService {
             releaseDate.setValue(simpleDateFormat.format(now));
 
             submission.getSamples().stream().forEach(sample -> sample.getAttributes().add(releaseDate));
-
-
             return submission;
         }
     };
 
 
-    private class PathTimecode {
-        Path path;
-        Long timecode;
 
-        PathTimecode(Path p, Long timecode) {
-            this.path = p;
-            this.timecode = timecode;
-        }
-    }
-
-    Function<Path, PathTimecode> pathToPathTimeCode
-            = new Function<Path, PathTimecode>() {
-
-        public PathTimecode apply(Path p) {
-            String[] parts = p.getFileName().toString().split("\\.");
-
-            if (parts.length < 3) {
-                throw new IllegalArgumentException(
-                        "File name should have three parts <name>.<number>.json instead of " + p.getFileName()
-                );
-            }
-
-            int penultimatePartIndex = parts.length - 2;
-
-            Long timeCode = Long.decode(parts[penultimatePartIndex]);
-
-            return new PathTimecode(p, timeCode);
-        }
-    };
-
-    Function<PathTimecode, Path> pathTimecodeToPath = new Function<PathTimecode, Path>() {
-        @Override
-        public Path apply(PathTimecode pathTimecode) {
-            return pathTimecode.path;
-        }
-    };
 
 }
