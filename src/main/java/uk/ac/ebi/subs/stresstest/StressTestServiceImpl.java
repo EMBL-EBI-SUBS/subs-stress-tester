@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.data.util.Pair;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resource;
 import org.springframework.http.HttpEntity;
@@ -84,22 +83,22 @@ public class StressTestServiceImpl implements StressTestService {
         URI rootUri = URI.create(protocol + "://" + host + ":" + port + "/" + basePath);
 
         Stream.of(
-                Pair.of(Submission.class, "submissions"),
-                Pair.of(Analysis.class, "analyses"),
-                Pair.of(Assay.class, "assays"),
-                Pair.of(AssayData.class, "assayData"),
-                Pair.of(EgaDac.class, "egaDacs"),
-                Pair.of(EgaDacPolicy.class, "egaDacPolicies"),
-                Pair.of(EgaDataset.class, "egaDatasets"),
-                Pair.of(Project.class, "projects"),
-                Pair.of(Protocol.class, "protocols"),
-                Pair.of(Sample.class, "samples"),
-                Pair.of(SampleGroup.class, "sampleGroups"),
-                Pair.of(Study.class, "studies")
+                new Object[] {Submission.class, "submissions"},
+                new Object[] {Analysis.class, "analyses"},
+                new Object[] {Assay.class, "assays"},
+                new Object[] {AssayData.class, "assayData"},
+                new Object[] {EgaDac.class, "egaDacs"},
+                new Object[] {EgaDacPolicy.class, "egaDacPolicies"},
+                new Object[] {EgaDataset.class, "egaDatasets"},
+                new Object[] {Project.class, "projects"},
+                new Object[] {Protocol.class, "protocols"},
+                new Object[] {Sample.class, "samples"},
+                new Object[] {SampleGroup.class, "sampleGroups"},
+                new Object[] {Study.class, "studies"}
         ).forEach(
                 pair -> {
-                    Class type = pair.getFirst();
-                    String name = pair.getSecond() + ":create";
+                    Class type = (Class) pair[0];
+                    String name = pair[1] + ":create";
 
                     Link link = apiLinkDiscovery.discoverNamedLink(rootUri, name);
 
