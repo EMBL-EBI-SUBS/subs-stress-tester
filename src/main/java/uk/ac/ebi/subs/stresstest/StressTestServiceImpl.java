@@ -81,7 +81,8 @@ public class StressTestServiceImpl implements StressTestService {
         Stream.of(
                 Pair.of(Sample.class, "samples"),
                 Pair.of(Assay.class, "assays"),
-                Pair.of(Study.class, "studies")
+                Pair.of(Study.class, "studies"),
+                Pair.of(Project.class,"projects")
         ).forEach(
                 pair -> {
                     Class type = pair.getFirst();
@@ -169,7 +170,7 @@ public class StressTestServiceImpl implements StressTestService {
                         } catch (Exception e) {
                             logger.error("HTTP error when posting item");
                             logger.error(item.toString());
-                            //logger.error(e.getResponseBodyAsString());
+                            logger.error(e.getMessage());
                             logger.error(e.toString());
                             throw e;
                         }
