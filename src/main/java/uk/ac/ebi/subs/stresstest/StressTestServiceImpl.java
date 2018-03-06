@@ -82,7 +82,9 @@ public class StressTestServiceImpl implements StressTestService {
                 Pair.of(Sample.class, "samples"),
                 Pair.of(Assay.class, "assays"),
                 Pair.of(Study.class, "studies"),
-                Pair.of(Project.class,"projects")
+                Pair.of(Project.class,"projects"),
+                Pair.of(Project.class,"projects"),
+                Pair.of(AssayData.class,"assayData")
         ).forEach(
                 pair -> {
                     Class type = pair.getFirst();
