@@ -167,10 +167,10 @@ public class StressTestServiceImpl implements StressTestService {
                             URI location = responseEntity.getHeaders().getLocation();
 
                             logger.debug("created {}", location);
-                        } catch (Exception e) {
+                        } catch (HttpClientErrorException e) {
                             logger.error("HTTP error when posting item");
                             logger.error(item.toString());
-                            logger.error(e.getMessage());
+                            logger.error(e.getResponseBodyAsString());
                             logger.error(e.toString());
                             throw e;
                         }
