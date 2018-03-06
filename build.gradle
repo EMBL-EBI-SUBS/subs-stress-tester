@@ -1,5 +1,5 @@
 group 'uk.ac.ebi.subs'
-version '0.2.0-SNAPSHOT'
+version '0.1.0-SNAPSHOT'
 
 
 apply plugin: 'java'
@@ -39,18 +39,14 @@ dependencies {
     compile("org.apache.any23:apache-any23-encoding:1.1")
     compile("commons-io:commons-io:2.4")
     compile("org.apache.httpcomponents:httpclient:4.5")
-
-    compile("uk.ac.ebi.subs:subs-processing-model:0.2.0-SNAPSHOT")
-
-    compile("uk.ac.ebi.subs:subs-data-model:0.3.0-SNAPSHOT")
-
+    compile("org.springframework.plugin:spring-plugin-core")
+    compile("uk.ac.ebi.subs:subs-data-model:1.0.1-SNAPSHOT")
+    compile("org.springframework.data:spring-data-commons")
 
     compile("com.jayway.jsonpath:json-path")
     testCompile("com.jayway.jsonpath:json-path:2.0.0")
 
     compile fileTree(dir: 'libs', include: '*.jar')
-
-
     testCompile("junit:junit")
     testCompile("org.springframework.boot:spring-boot-starter-test")
     testCompile('uk.ac.ebi.subs:subs-test-categories:0.1.0-SNAPSHOT')
