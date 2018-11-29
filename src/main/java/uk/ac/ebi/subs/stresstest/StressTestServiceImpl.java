@@ -80,11 +80,10 @@ public class StressTestServiceImpl implements StressTestService {
 
         Stream.of(
                 Pair.of(Sample.class, "samples"),
-                Pair.of(Assay.class, "assays"),
-                Pair.of(Study.class, "studies"),
-                Pair.of(Project.class,"projects"),
-                Pair.of(Project.class,"projects"),
-                Pair.of(AssayData.class,"assayData")
+                Pair.of(Assay.class, "sequencingExperiments"),
+                Pair.of(Study.class, "enaStudies"),
+                Pair.of(AssayData.class,"sequencingRuns"),
+                Pair.of(Project.class,"projects")
         ).forEach(
                 pair -> {
                     Class type = pair.getFirst();
